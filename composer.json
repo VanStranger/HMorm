@@ -1,0 +1,19 @@
+{
+    "name": "vanstranger/hmorm",
+    "description": "php orm",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "成功那么难吗",
+            "email": "fanjunjiei@126.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "HMorm\\": "src/"
+        }
+    }
+}
