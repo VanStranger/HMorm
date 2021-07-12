@@ -1,7 +1,7 @@
 <?php
 include __DIR__."/../vendor/autoload.php";
 use HMorm\DB as DB;
-DB::setLogPath("./logs123");
+DB::setLogPath("./logs");
 DB::init(
   [
     "db"=>[
@@ -16,5 +16,11 @@ DB::init(
     ],
 ]
   );
-  $data=DB::table("use")->select();
-  var_dump(json_encode($data)) ;
+  $data=DB::table("users")
+  ->field("sex,count(1) as num")
+  ->group("sex")
+  ->having("num>1")
+  ->select();
+  echo DB::getSql()."</br>";
+  echo json_encode(DB::getParams())."</br>";
+  echo json_encode($data);

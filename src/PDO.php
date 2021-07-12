@@ -152,13 +152,14 @@ class PDO
 
             $this->succes = $this->sQuery->execute();
             $this->querycount++;
-        } catch (\Throwable $e) {
+        } catch (\PDOException $e) {
             $e = $this->exceptionLog($e, $this->buildParams($query));
             $e->sql = array(
                 "query" => $query,
                 "parameters" => $parameters,
             );
-            throw $e;
+            // throw $e;
+            var_dump($e);
         }
 
         $this->parameters = array();
