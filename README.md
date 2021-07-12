@@ -120,17 +120,6 @@ DB::table("user")
 ->where("id",2)
 ->select();
 ```
-
-添加多个条件
-
-```php
-DB::table("user")
-->where([
-  "username"=>"hongmeng",
-  "createType"=>"独立自主"
-  ])
-->select();
-```
 添加非prepare条件
 
 ```php
