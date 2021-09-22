@@ -124,17 +124,17 @@ class DB
         // $this::$sql="";
         // $this::$params=[];
     }
-    public static function connect($table)
+    public static function connect($db)
     {
         if (!self::$instance instanceof self) {
-            self::$conn     = $table;
-            self::$instance = new self();
-        } elseif (self::$conn !== $table) {
+            self::$conn     = $db;
+        } elseif (self::$conn !== $db) {
             $dbconfigs      = self::$dbconfig;
-            self::$conn     = $table;
+            self::$conn     = $db;
             self::$dbconfig = $dbconfigs[self::$conn];
             self::$pdo      = PDO::getinstance(self::$dbconfig, self::$conn);
         }
+        self::$instance = new self();
         return self::$instance;
     }
     public static function closeConn()
@@ -147,7 +147,6 @@ class DB
     public static function table($name)
     {
         if (!self::$instance instanceof self) {
-            self::$instance = new self();
         } elseif (self::$conn !== "db") {
             $dbconfigs = self::$dbconfig;
             if (!self::$conn) {
@@ -156,6 +155,7 @@ class DB
             self::$dbconfig = $dbconfigs[self::$conn];
             self::$pdo      = PDO::getinstance(self::$dbconfig, self::$conn);
         }
+        self::$instance = new self();
         $db = self::$instance;
         if (is_string($name)) {
             $db->tablename       = self::$dbconfig['prefix'] . $name;
