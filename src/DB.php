@@ -49,7 +49,7 @@ class DB
         if (self::$datatype) {
             return self::$datatype;
         } else {
-            $dbconfigs = include LY_BASEPATH . "/config/database.php";
+            $dbconfigs = self::$dbconfig;
             if (!self::$conn) {
                 self::$conn = "db";
             }
@@ -67,7 +67,7 @@ class DB
         if (self::$dbconfig) {
             return self::$dbconfig;
         } else {
-            $dbconfigs = include LY_BASEPATH . "/config/database.php";
+            $dbconfigs = self::$dbconfig;
             if (!self::$conn) {
                 self::$conn = "db";
             }
@@ -130,7 +130,7 @@ class DB
             self::$conn     = $table;
             self::$instance = new self();
         } elseif (self::$conn !== $table) {
-            $dbconfigs      = include LY_BASEPATH . "/config/database.php";
+            $dbconfigs      = self::$dbconfig;
             self::$conn     = $table;
             self::$dbconfig = $dbconfigs[self::$conn];
             self::$pdo      = PDO::getinstance(self::$dbconfig, self::$conn);
@@ -149,7 +149,7 @@ class DB
         if (!self::$instance instanceof self) {
             self::$instance = new self();
         } elseif (self::$conn !== "db") {
-            $dbconfigs = include LY_BASEPATH . "/config/database.php";
+            $dbconfigs = self::$dbconfig;
             if (!self::$conn) {
                 self::$conn = "db";
             }
