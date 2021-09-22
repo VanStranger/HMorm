@@ -3,43 +3,33 @@ namespace HMorm;
 
 class DB
 {
-    public static $conn = "";
     public static $pdo;
     public static $instance;
     public static $datatype;
     public static $dbconfig;
-    private $tablename = "";
-    private $tableParams = [];
-    private $joinSql = "";
-    private $joinParams = [];
-    private $fieldSql = "";
-    private $updateSql = "";
-    private $updateParams = [];
-    private $whereSql = "";
-    private $whereParams = [];
-    private $orderSql = "";
-    private $groupSql = "";
-    private $havingSql = "";
-    private $limitSql = "";
-    private $limitParams = [];
-    private static $sql = "";
+    public static $conn    = "";
+    private static $tables = [];
+    private $tablename     = "";
+    private $newTablename  = "";
+    private $tableParams   = [];
+    private $joinSql       = "";
+    private $joinParams    = [];
+    private $fieldSql      = "";
+    private $updateSql     = "";
+    private $updateParams  = [];
+    private $whereSql      = "";
+    private $whereParams   = [];
+    private $orderSql      = "";
+    private $groupSql      = "";
+    private $havingSql     = "";
+    private $havingParams=[];
+    private $limitSql      = "";
+    private $limitParams   = [];
+    private static $sql    = "";
     private static $params = [];
-    private function __construct()
+    public static function setLogPath($path)
     {
-        // $dbconfigs = include LY_BASEPATH . "/config/database.php";
-        // if (!self::$conn) {
-        //     self::$conn = "db";
-        // }
-        // if (!key_exists("type", $dbconfigs[self::$conn])) {
-        //     $dbconfigs[self::$conn]['type'] = 'mysql';
-        // }
-        // self::$dbconfig = $dbconfigs[self::$conn];
-        // self::$dbconfig['prefix'] = isset(self::$dbconfig['prefix']) ? self::$dbconfig['prefix'] : "";
-        // self::$datatype = self::$dbconfig['type'];
-        // self::$pdo = PDO::getinstance(self::$dbconfig, self::$conn);
-    }
-    public static function setLogPath($path){
-      PDO::setLogPath($path);
+        PDO::setLogPath($path);
     }
     public static function init($dbconfigs)
     {
@@ -49,10 +39,10 @@ class DB
         if (!key_exists("type", $dbconfigs[self::$conn])) {
             $dbconfigs[self::$conn]['type'] = 'mysql';
         }
-        self::$dbconfig = $dbconfigs[self::$conn];
+        self::$dbconfig           = $dbconfigs[self::$conn];
         self::$dbconfig['prefix'] = isset(self::$dbconfig['prefix']) ? self::$dbconfig['prefix'] : "";
-        self::$datatype = self::$dbconfig['type'];
-        self::$pdo = PDO::getinstance(self::$dbconfig, self::$conn);
+        self::$datatype           = self::$dbconfig['type'];
+        self::$pdo                = PDO::getinstance(self::$dbconfig, self::$conn);
     }
     public static function getDatatype()
     {
@@ -114,33 +104,36 @@ class DB
     }
     public function reset()
     {
-        $this->tablename = "";
-        $this->tableParams = [];
-        $this->joinSql = "";
-        $this->joinParams = [];
-        $this->fieldSql = "";
-        $this->updateSql = "";
+        self::$tables       = [];
+        $this->tablename    = "";
+        $this->newTablename = "";
+        $this->tableParams  = [];
+        $this->joinSql      = "";
+        $this->joinParams   = [];
+        $this->fieldSql     = "";
+        $this->updateSql    = "";
         $this->updateParams = [];
-        $this->whereSql = "";
-        $this->whereParams = [];
-        $this->orderSql = "";
-        $this->limitSql = "";
-        $this->limitParams = [];
-        $this->groupSql = "";
-        $this->havingSql = "";
+        $this->whereSql     = "";
+        $this->whereParams  = [];
+        $this->orderSql     = "";
+        $this->limitSql     = "";
+        $this->limitParams  = [];
+        $this->groupSql     = "";
+        $this->havingSql    = "";
+        $this->havingParams=[];
         // $this::$sql="";
         // $this::$params=[];
     }
     public static function connect($table)
     {
         if (!self::$instance instanceof self) {
-            self::$conn = $table;
+            self::$conn     = $table;
             self::$instance = new self();
         } elseif (self::$conn !== $table) {
-            $dbconfigs = include LY_BASEPATH . "/config/database.php";
-            self::$conn = $table;
+            $dbconfigs      = include LY_BASEPATH . "/config/database.php";
+            self::$conn     = $table;
             self::$dbconfig = $dbconfigs[self::$conn];
-            self::$pdo = PDO::getinstance(self::$dbconfig, self::$conn);
+            self::$pdo      = PDO::getinstance(self::$dbconfig, self::$conn);
         }
         return self::$instance;
     }
@@ -148,7 +141,7 @@ class DB
     {
         self::$conn = "";
         DB::$pdo->closeInstance();
-        DB::$pdo = null;
+        DB::$pdo        = null;
         self::$instance = null;
     }
     public static function table($name)
@@ -161,24 +154,63 @@ class DB
                 self::$conn = "db";
             }
             self::$dbconfig = $dbconfigs[self::$conn];
-            self::$pdo = PDO::getinstance(self::$dbconfig, self::$conn);
+            self::$pdo      = PDO::getinstance(self::$dbconfig, self::$conn);
         }
         $db = self::$instance;
         if (is_string($name)) {
-            $db->tablename = $name;
+            $db->tablename       = self::$dbconfig['prefix'] . $name;
+            self::$tables[$name] = self::$dbconfig['prefix'] . $name;
         } elseif (is_array($name)) {
             if (count($name) == 1) {
-                $key = key($name);
-                $value = $name[$key];
-                $db->tablename = $key . " " . $value;
+                $key                                            = key($name);
+                $value                                          = $name[$key];
+                $db->tablename                                  = self::$dbconfig['prefix'] . $key;
+                $db->newTablename                               = $value;
+                self::$tables[$key]                             = $value;
+                self::$tables[self::$dbconfig['prefix'] . $key] = $value;
             } elseif (count($name) == 2 && is_array($name[0])) {
-                $db->tablename = "(" . $name[0][0] . ") " . $name[1] . " ";
-                $db->tableParams = $name[0][1];
+                $db->tablename    = "(" . $name[0][0] . ") ";
+                $db->newTablename = $name[1];
+                $db->tableParams  = $name[0][1];
             }
         } else {
             throw new \Exception("table方法的参数应当是一个字符串或者一个数组", 1);
         }
         return $db;
+    }
+    public function join($table, $condition, $option = "inner")
+    {
+        $option = strtoupper($option);
+        if (!in_array($option, ['INNER', 'LEFT', "RIGHT"])) {
+            $option = "INNER";
+        }
+        if (is_string($table)) {
+            $jointableSql         = self::$dbconfig['prefix'] . $table;
+            self::$tables[$table] = self::$dbconfig['prefix'] . $table;
+        } elseif (is_array($table)) {
+            if (count($table) == 1) {
+                $key                                            = key($table);
+                $value                                          = $table[$key];
+                $jointableSql                                   = self::$dbconfig['prefix'] . $key . " " . $value;
+                self::$tables[$key]                             = $value;
+                self::$tables[self::$dbconfig['prefix'] . $key] = $value;
+            } elseif (count($table) == 2 && is_array($table[0])) {
+                $jointableSql     = "(" . $table[0][0] . ") " . $table[1] . " ";
+                $this->joinParams = $table[0][1];
+            }
+        } else {
+            throw new \Exception("join方法的第一个参数应当是一个字符串或者一个数组", 1);
+        }
+        if (is_string($condition)) {
+            foreach (self::$tables as $key => $value) {
+                $condition = str_replace($key . ".", $value . ".", $condition);
+            }
+            $conditionSql = $condition;
+        } else {
+            throw new \Exception("join方法的第二个参数应当是一个字符串,( like: a.userid=b.userid)", 1);
+        }
+        $this->joinSql .= " " . $option . " join " . $jointableSql . " on " . $condition;
+        return $this;
     }
     public function field($param)
     {
@@ -194,37 +226,16 @@ class DB
             }
             $this->fieldSql = substr($this->fieldSql, 0, -1);
         }
+        foreach (self::$tables as $key => $value) {
+            $this->fieldSql = str_replace($key . ".", $value . ".", $this->fieldSql);
+        }
         return $this;
     }
-    public function join($table, $condition, $option = "inner")
+    public function fields($param)
     {
-        $option = strtoupper($option);
-        if (!in_array($option, ['INNER', 'LEFT', "RIGHT"])) {
-            $option = "INNER";
-        }
-        if (is_string($table)) {
-            $jointableSql = $table;
-        } elseif (is_array($table)) {
-            if (count($table) == 1) {
-                $key = key($table);
-                $value = $table[$key];
-                $jointableSql = $key . " " . $value;
-            } elseif (count($table) == 2 && is_array($table[0])) {
-                $jointableSql = "(" . $table[0][0] . ") " . $table[1] . " ";
-                $this->joinParams = $table[0][1];
-            }
-        } else {
-            throw new \Exception("join方法的第一个参数应当是一个字符串或者一个数组", 1);
-        }
-        if (is_string($condition)) {
-            $conditionSql = $condition;
-        } else {
-            throw new \Exception("join方法的第二个参数应当是一个字符串,( like: a.userid=b.userid)", 1);
-        }
-        $this->joinSql .= " " . $option . " join " . $jointableSql . " on " . $condition;
-        return $this;
+        return $this->field($param);
     }
-    public function where($where, $param1 = "", $param2 = "")
+    public function where($where, $param1 = null, $param2 = null)
     {
         if ($this->whereSql) {
             if (substr($this->whereSql, -3) === " ( ") {
@@ -236,25 +247,35 @@ class DB
             $this->whereSql = " where ( ";
         }
         if (is_array($where)) {
-            $needAnd = false;
+            $isfirst = true;
             foreach ($where as $key => $value) {
+                if (!$isfirst) {
+                    $this->whereSql .= " and ";
+                }
+                $isfirst = false;
                 if (is_string($value) || is_numeric($value)) {
-                    $this->whereSql .= sprintf(" %s %s =? ", $needAnd ? "and" : "", $key);
+                    if(strstr($key,".")===false){
+                        $this->whereSql .= sprintf(" %s =? ", "`" . $key . "`");
+                    }else{
+                        $this->whereSql .= sprintf(" %s =? ",  $key);
+                    }
                     $this->whereParams[] = $value;
                 } elseif (is_array($value)) {
-                    $this->whereSql .= sprintf(" %s %s ", $needAnd ? "and" : "", $key);
+                    if(strstr($key,".")===false){
+                        $this->whereSql .= sprintf(" %s", "`" . $key . "`");
+                    }else{
+                        $this->whereSql .= sprintf(" %s",  $key);
+                    }
                     foreach ($value as $k => $v) {
                         $this->whereSql = $this->whereSql . $v . " ";
                     }
                     $this->whereSql = $this->whereSql;
                 }
-                $needAnd = true;
             }
-            $needAnd = false;
         } elseif (is_string($where)) {
-            if ($param1 === "") {
+            if ($param1 === null) {
                 $this->whereSql .= sprintf(" %s ", $where);
-            } elseif ($param2 === "") {
+            } elseif ($param2 === null) {
                 if (is_array($param1)) {
                     $this->whereSql .= $where;
                     $this->whereParams = array_merge($this->whereParams, $param1);
@@ -262,6 +283,9 @@ class DB
                     $this->whereSql .= $where . " = ? ";
                     $this->whereParams[] = $param1;
                 }
+            } elseif ((is_string($param2) || is_numeric($param2)) && (is_string($param1) || is_numeric($param1))) {
+                $this->whereSql .= $where . " " . $param1 . " ? ";
+                $this->whereParams[] = $param2;
             }
         } elseif (is_callable($where, true)) {
             call_user_func($where, $this);
@@ -276,9 +300,12 @@ class DB
         } else {
             $this->whereSql .= " ) ";
         }
+        foreach (self::$tables as $key => $value) {
+            $this->whereSql = str_replace($key . ".", $value . ".", $this->whereSql);
+        }
         return $this;
     }
-    public function whereOr($where, $param1 = "", $param2 = "")
+    public function whereOr($where, $param1 = null, $param2 = null)
     {
         if ($this->whereSql) {
             if (substr($this->whereSql, -3) === " ( ") {
@@ -290,29 +317,38 @@ class DB
             $this->whereSql = " where ( ";
         }
         if (is_array($where)) {
-            $needAnd = false;
+            $isfirst = true;
             foreach ($where as $key => $value) {
+                if (!$isfirst) {
+                    $this->whereSql .= " and ";
+                }
+                $isfirst = false;
                 if (is_string($value) || is_numeric($value)) {
-
-                    $this->whereSql .= sprintf(" %s %s =? ", $needAnd ? "and" : "", $key);
+                    if(strstr($key,".")===false){
+                        $this->whereSql .= sprintf(" %s =? ", "`" . $key . "`");
+                    }else{
+                        $this->whereSql .= sprintf(" %s =? ",  $key);
+                    }
 
                     $this->whereParams[] = $value;
                 } elseif (is_array($value)) {
 
-                    $this->whereSql .= sprintf(" %s %s ", $needAnd ? "and" : "", $key);
+                    if(strstr($key,".")===false){
+                        $this->whereSql .= sprintf(" %s ", "`" . $key . "`");
+                    }else{
+                        $this->whereSql .= sprintf(" %s ",  $key);
+                    }
 
                     foreach ($value as $k => $v) {
                         $this->whereSql = $this->whereSql . $v . " ";
                     }
                     $this->whereSql = $this->whereSql;
                 }
-                $needAnd = true;
             }
-            $needAnd = false;
         } elseif (is_string($where)) {
-            if ($param1 === "") {
+            if ($param1 === null) {
                 $this->whereSql .= sprintf(" %s ", $where);
-            } elseif ($param2 === "") {
+            } elseif ($param2 === null) {
                 if (is_array($param1)) {
                     $this->whereSql .= $where;
                     $this->whereParams = array_merge($this->whereParams, $param1);
@@ -320,6 +356,9 @@ class DB
                     $this->whereSql .= $where . "=? ";
                     $this->whereParams[] = $param1;
                 }
+            } elseif ((is_string($param2) || is_numeric($param2)) && (is_string($param1) || is_numeric($param1))) {
+                $this->whereSql .= $where . " " . $param1 . " ? ";
+                $this->whereParams[] = $param2;
             }
         } elseif (is_callable($where, true)) {
             call_user_func($where, $this);
@@ -333,6 +372,188 @@ class DB
         } else {
             $this->whereSql .= " ) ";
         }
+        foreach (self::$tables as $key => $value) {
+            $this->whereSql = str_replace($key . ".", $value . ".", $this->whereSql);
+        }
+        return $this;
+    }
+    public function whereIn($param1, $param2)
+    {
+        if ($this->whereSql) {
+            if (substr($this->whereSql, -3) === " ( ") {
+                $this->whereSql .= " ( ";
+            } else {
+                $this->whereSql .= " and ( ";
+            }
+        } else {
+            $this->whereSql = " where ( ";
+        }
+        if (is_string($param1) && is_array($param2)) {
+            $this->whereSql .= sprintf(" %s in ( ", "`" . $param1 . "`");
+            foreach ($param2 as $key => $value) {
+                $this->whereSql .= "?,";
+                $this->whereParams[] = $value;
+            }
+            $this->whereSql = substr($this->whereSql, 0, -1) . ") ";
+        } elseif (is_callable($where, true)) {
+            call_user_func($where, $this);
+        }
+        if (substr($this->whereSql, -9) === " where ( ") {
+            $this->whereSql = substr($this->whereSql, 0, -9);
+        } elseif (substr($this->whereSql, -6) === " or ( ") {
+            $this->whereSql = substr($this->whereSql, 0, -6);
+        } elseif (substr($this->whereSql, -3) === " ( ") {
+            $this->whereSql = substr($this->whereSql, 0, -3);
+        } else {
+            $this->whereSql .= " ) ";
+        }
+        foreach (self::$tables as $key => $value) {
+            $this->whereSql = str_replace($key . ".", $value . ".", $this->whereSql);
+        }
+        return $this;
+    }
+    public function whereLikeEntity($param, $type = true)
+    {
+        $lies  = $arr  = DB::query("SHOW COLUMNS FROM `" . $this->tablename . "`");
+        $where = [];
+        foreach ($lies as $key => $value) {
+            if (array_key_exists($value['Field'], $param) && $param[$value['Field']]) {
+                $where[$value['Field']] = $param[$value['Field']];
+            }
+        }
+        if ($this->whereSql) {
+            if (substr($this->whereSql, -3) === " ( ") {
+                $this->whereSql .= " ( ";
+            } else {
+                $this->whereSql .= " or ( ";
+            }
+        } else {
+            $this->whereSql = " where ( ";
+        }
+        if (is_array($where)) {
+            $isfirst = true;
+            foreach ($where as $key => $value) {
+                if (!$isfirst) {
+                    $this->whereSql .= $type ? " and " : " or ";
+                }
+                $isfirst = false;
+
+                $this->whereSql .= sprintf(" %s like ? ", "`" . $key . "`");
+
+                $this->whereParams[] = "%" . $value . "%";
+
+            }
+        } elseif (is_callable($where, true)) {
+            call_user_func($where, $this);
+        }
+        if (substr($this->whereSql, -9) === " where ( ") {
+            $this->whereSql = substr($this->whereSql, 0, -9);
+        } elseif (substr($this->whereSql, -6) === " or ( ") {
+            $this->whereSql = substr($this->whereSql, 0, -6);
+        } elseif (substr($this->whereSql, -3) === " ( ") {
+            $this->whereSql = substr($this->whereSql, 0, -3);
+        } else {
+            $this->whereSql .= " ) ";
+        }
+        foreach (self::$tables as $key => $value) {
+            $this->whereSql = str_replace($key . ".", $value . ".", $this->whereSql);
+        }
+        return $this;
+    }
+    public function whereLeftLikeEntity($param, $type = true)
+    {
+        $lies  = $arr  = DB::query("SHOW COLUMNS FROM `" . $this->tablename . "`");
+        $where = [];
+        foreach ($lies as $key => $value) {
+            if (array_key_exists($value['Field'], $param) && $param[$value['Field']]) {
+                $where[$value['Field']] = $param[$value['Field']];
+            }
+        }
+        if ($this->whereSql) {
+            if (substr($this->whereSql, -3) === " ( ") {
+                $this->whereSql .= " ( ";
+            } else {
+                $this->whereSql .= " or ( ";
+            }
+        } else {
+            $this->whereSql = " where ( ";
+        }
+        if (is_array($where)) {
+            $isfirst = true;
+            foreach ($where as $key => $value) {
+                if (!$isfirst) {
+                    $this->whereSql .= $type ? " and " : " or ";
+                }
+                $isfirst = false;
+
+                $this->whereSql .= sprintf(" %s like ? ", "`" . $key . "`");
+
+                $this->whereParams[] = $value . "%";
+
+            }
+        } elseif (is_callable($where, true)) {
+            call_user_func($where, $this);
+        }
+        if (substr($this->whereSql, -9) === " where ( ") {
+            $this->whereSql = substr($this->whereSql, 0, -9);
+        } elseif (substr($this->whereSql, -6) === " or ( ") {
+            $this->whereSql = substr($this->whereSql, 0, -6);
+        } elseif (substr($this->whereSql, -3) === " ( ") {
+            $this->whereSql = substr($this->whereSql, 0, -3);
+        } else {
+            $this->whereSql .= " ) ";
+        }
+        foreach (self::$tables as $key => $value) {
+            $this->whereSql = str_replace($key . ".", $value . ".", $this->whereSql);
+        }
+        return $this;
+    }
+    public function whereRightLikeEntity($param, $type = true)
+    {
+        $lies  = $arr  = DB::query("SHOW COLUMNS FROM `" . $this->tablename . "`");
+        $where = [];
+        foreach ($lies as $key => $value) {
+            if (array_key_exists($value['Field'], $param) && $param[$value['Field']]) {
+                $where[$value['Field']] = $param[$value['Field']];
+            }
+        }
+        if ($this->whereSql) {
+            if (substr($this->whereSql, -3) === " ( ") {
+                $this->whereSql .= " ( ";
+            } else {
+                $this->whereSql .= " or ( ";
+            }
+        } else {
+            $this->whereSql = " where ( ";
+        }
+        if (is_array($where)) {
+            $isfirst = true;
+            foreach ($where as $key => $value) {
+                if (!$isfirst) {
+                    $this->whereSql .= $type ? " and " : " or ";
+                }
+                $isfirst = false;
+
+                $this->whereSql .= sprintf(" %s like ? ", "`" . $key . "`");
+
+                $this->whereParams[] = "%" . $value;
+
+            }
+        } elseif (is_callable($where, true)) {
+            call_user_func($where, $this);
+        }
+        if (substr($this->whereSql, -9) === " where ( ") {
+            $this->whereSql = substr($this->whereSql, 0, -9);
+        } elseif (substr($this->whereSql, -6) === " or ( ") {
+            $this->whereSql = substr($this->whereSql, 0, -6);
+        } elseif (substr($this->whereSql, -3) === " ( ") {
+            $this->whereSql = substr($this->whereSql, 0, -3);
+        } else {
+            $this->whereSql .= " ) ";
+        }
+        foreach (self::$tables as $key => $value) {
+            $this->whereSql = str_replace($key . ".", $value . ".", $this->whereSql);
+        }
         return $this;
     }
     public function group($group)
@@ -342,14 +563,78 @@ class DB
         } elseif (is_callable($group, true)) {
             call_user_func($group, $this);
         }
+        foreach (self::$tables as $key => $value) {
+            $this->groupSql = str_replace($key . ".", $value . ".", $this->groupSql);
+        }
         return $this;
     }
-    public function having($having)
+    public function having($having, $param1 = null, $param2 = null)
     {
-        if (is_string($having)) {
-            $this->havingSql = $having;
+        if ($this->havingSql) {
+            if (substr($this->havingSql, -3) === " ( ") {
+                $this->havingSql .= " ( ";
+            } else {
+                $this->havingSql .= " and ( ";
+            }
+        } else {
+            $this->havingSql = " having ( ";
+        }
+        if (is_array($having)) {
+            $isfirst = true;
+            foreach ($having as $key => $value) {
+                if (!$isfirst) {
+                    $this->havingSql .= " and ";
+                }
+                $isfirst = false;
+                if (is_string($value) || is_numeric($value)) {
+                    if(strstr($key,".")===false){
+                        $this->havingSql .= sprintf(" %s =? ", "`" . $key . "`");
+                    }else{
+                        $this->havingSql .= sprintf(" %s =? ",  $key );
+                    }
+                    $this->havingParams[] = $value;
+                } elseif (is_array($value)) {
+                    if(strstr($key,".")===false){
+                        $this->havingSql .= sprintf(" %s ", "`" . $key . "`");
+                    }else{
+                        $this->havingSql .= sprintf(" %s ",  $key );
+                    }
+                    foreach ($value as $k => $v) {
+                        $this->havingSql = $this->havingSql . $v . " ";
+                    }
+                    $this->havingSql = $this->havingSql;
+                }
+            }
+        } elseif (is_string($having)) {
+            if ($param1 === null) {
+                $this->havingSql .= sprintf(" %s ", $having);
+            } elseif ($param2 === null) {
+                if (is_array($param1)) {
+                    $this->havingSql .= $having;
+                    $this->havingParams = array_merge($this->havingParams, $param1);
+                } else {
+                    $this->havingSql .= $having . " = ? ";
+                    $this->havingParams[] = $param1;
+                }
+            } elseif ((is_string($param2) || is_numeric($param2)) && (is_string($param1) || is_numeric($param1))) {
+                $this->havingSql .= $having . " " . $param1 . " ? ";
+                $this->havingParams[] = $param2;
+            }
         } elseif (is_callable($having, true)) {
             call_user_func($having, $this);
+        }
+
+        if (substr($this->havingSql, -10) === " having ( ") {
+            $this->havingSql = substr($this->havingSql, 0, -10);
+        } elseif (substr($this->havingSql, -7) === " and ( ") {
+            $this->havingSql = substr($this->havingSql, 0, -7);
+        } elseif (substr($this->havingSql, -3) === " ( ") {
+            $this->havingSql = substr($this->havingSql, 0, -3);
+        } else {
+            $this->havingSql .= " ) ";
+        }
+        foreach (self::$tables as $key => $value) {
+            $this->havingSql = str_replace($key . ".", $value . ".", $this->havingSql);
         }
         return $this;
     }
@@ -360,6 +645,9 @@ class DB
         } elseif (is_callable($order, true)) {
             call_user_func($order, $this);
         }
+        foreach (self::$tables as $key => $value) {
+            $this->orderSql = str_replace($key . ".", $value . ".", $this->orderSql);
+        }
         return $this;
     }
     public function limit($start, $size = null)
@@ -369,10 +657,10 @@ class DB
         } else {
             if (self::$datatype == "mysql") {
                 if ($size === null) {
-                    $this->limitSql = " limit ? ";
+                    $this->limitSql    = " limit ? ";
                     $this->limitParams = [$start];
                 } else {
-                    $this->limitSql = " limit ?,? ";
+                    $this->limitSql    = " limit ?,? ";
                     $this->limitParams = [$start, $size];
                 }
             } elseif (self::$datatype == "oci") {
@@ -383,13 +671,13 @@ class DB
     }
     public function insert($param1, $param2 = [])
     {
-        $insertSql = " ";
+        $insertSql    = " ";
         $insertParams = $tableParams;
         if (is_array($param1)) {
             $iSql1 = "(";
             $iSql2 = "(";
             foreach ($param1 as $key => $value) {
-                $iSql1 .= $key . ",";
+                $iSql1 .= "`" . $key . "`" . ",";
                 if (is_array($value)) {
                     $iSql2 .= $value[0] . ",";
                 } else {
@@ -397,8 +685,8 @@ class DB
                     $insertParams[] = $value;
                 }
             }
-            $iSql1 = substr($iSql1, 0, -1) . ")";
-            $iSql2 = substr($iSql2, 0, -1) . ")";
+            $iSql1     = substr($iSql1, 0, -1) . ")";
+            $iSql2     = substr($iSql2, 0, -1) . ")";
             $insertSql = $iSql1 . " values " . $iSql2;
         } elseif (is_string($param1)) {
             $insertSql .= $param1;
@@ -406,18 +694,18 @@ class DB
                 $insertParams = $param2;
             }
         }
-        $this::$sql = "INSERT INTO " . self::$dbconfig['prefix'] . $this->tablename . $insertSql;
+        $this::$sql    = "INSERT INTO " . $this->tablename . $insertSql;
         $this::$params = array_merge($insertParams);
-        $res = DB::$pdo->query($this::$sql, $this::$params);
+        $res           = DB::$pdo->query($this::$sql, $this::$params);
         $this->reset();
         return $res;
     }
     public function insertEntity($param, $setnull = false)
     {
-        $insertSql = "";
+        $insertSql    = "";
         $insertParams = $tableParams;
-        $lies = $arr = DB::query("SHOW COLUMNS FROM `" . self::$dbconfig['prefix'] . $this->tablename . "`");
-        $param1 = [];
+        $lies         = $arr         = DB::query("SHOW COLUMNS FROM `" . $this->tablename . "`");
+        $param1       = [];
         foreach ($lies as $key => $value) {
             if (array_key_exists($value['Field'], $param) && (!$setnull || $value !== null)) {
                 $param1[$value['Field']] = $param[$value['Field']];
@@ -427,7 +715,7 @@ class DB
             $iSql1 = "(";
             $iSql2 = "(";
             foreach ($param1 as $key => $value) {
-                $iSql1 .= $key . ",";
+                $iSql1 .= "`" . $key . "`" . ",";
                 if (is_array($value)) {
                     $iSql2 .= $value[0] . ",";
                 } else {
@@ -435,12 +723,12 @@ class DB
                     $insertParams[] = $value;
                 }
             }
-            $iSql1 = substr($iSql1, 0, -1) . ")";
-            $iSql2 = substr($iSql2, 0, -1) . ")";
-            $insertSql = $iSql1 . " values " . $iSql2;
-            $this::$sql = "INSERT INTO " . self::$dbconfig['prefix'] . $this->tablename . $insertSql;
+            $iSql1         = substr($iSql1, 0, -1) . ")";
+            $iSql2         = substr($iSql2, 0, -1) . ")";
+            $insertSql     = $iSql1 . " values " . $iSql2;
+            $this::$sql    = "INSERT INTO " . $this->tablename . $insertSql;
             $this::$params = array_merge($insertParams);
-            $res = DB::$pdo->query($this::$sql, $this::$params);
+            $res           = DB::$pdo->query($this::$sql, $this::$params);
             $this->reset();
             return $res;
         } else {
@@ -453,57 +741,58 @@ class DB
         if (!$force && !$this->whereSql) {
             throw new \Exception("this will delete with no 'where',we has forbidden it.");
         }
-        $this::$sql = "DELETE FROM " . self::$dbconfig['prefix'] . $this->tablename . $this->whereSql . $this->orderSql . $this->limitSql;
+        $this::$sql    = "DELETE FROM " . $this->tablename . " " . $this->newTablename . " " . $this->whereSql . $this->orderSql . $this->limitSql;
         $this::$params = array_merge($this->tableParams, $this->whereParams, $this->limitParams);
-        $res = DB::$pdo->query($this::$sql, $this::$params);
+        $res           = DB::$pdo->query($this::$sql, $this::$params);
         $this->reset();
         return $res;
     }
-    public function update($param, $param1 = [])
+    public function update($param, $param1 = null)
     {
         if (is_array($param)) {
             foreach ($param as $key => $value) {
                 if (!is_array($value)) {
-                    $this->updateSql .= $key . "=?,";
+                    $this->updateSql .= "`" . $key . "`" . "=?,";
                     $this->updateParams[] = $value;
                 } else {
                     $keys = array_keys($value);
                     if (is_numeric($keys[0])) {
                         if (count($keys) > 1) {
                             $v = $value[$keys[0]];
-                            $this->updateSql .= $key . "=" . $v . ",";
+                            $this->updateSql .= "`" . $key . "`" . "=" . $v . ",";
                             $this->updateParams[] = $value[$keys[1]];
                         } else {
                             $v = $value[$keys[0]];
-                            $this->updateSql .= $key . "=" . $v . ",";
+                            $this->updateSql .= "`" . $key . "`" . "=" . $v . ",";
                         }
                     } else {
                         $v = $keys[0];
-                        $this->updateSql .= $key . "=" . $v . "?,";
+                        $this->updateSql .= "`" . $key . "`" . "=" . $v . "?,";
                         $this->updateParams[] = $value[$keys[0]];
                     }
                 }
             }
             $this->updateSql = substr($this->updateSql, 0, -1);
         } elseif (is_string($param)) {
-            if (!$param1) {
+            if ($param1 === null) {
                 $this->updateSql .= $param;
             } elseif (is_array($param1)) {
                 $this->updateSql .= $param;
                 $this->updateParams = array_merge($this->updateParams, $param1);
             } else {
-                return 0;
+                $this->updateSql .= "`" . $param . "`" . "=? ";
+                $this->updateParams[] = $param1;
             }
         }
-        $this::$sql = "update " . self::$dbconfig['prefix'] . $this->tablename . " set " . $this->updateSql . $this->whereSql . $this->limitSql;
+        $this::$sql    = "update " . $this->tablename . " set " . $this->updateSql . $this->whereSql . $this->limitSql;
         $this::$params = array_merge($this->tableParams, $this->updateParams, $this->whereParams, $this->limitParams);
-        $res = DB::$pdo->query($this::$sql, $this::$params);
+        $res           = DB::$pdo->query($this::$sql, $this::$params);
         $this->reset();
         return $res;
     }
     public function updateEntity($param1, $setnull = false)
     {
-        $lies = $arr = DB::query("SHOW COLUMNS FROM `" . self::$dbconfig['prefix'] . $this->tablename . "`");
+        $lies  = $arr  = DB::query("SHOW COLUMNS FROM `" . $this->tablename . "`");
         $param = [];
         foreach ($lies as $key => $value) {
             if (array_key_exists($value['Field'], $param1) && (!$setnull || $value !== null)) {
@@ -513,18 +802,18 @@ class DB
         if (is_array($param)) {
             foreach ($param as $key => $value) {
                 if (!is_array($value)) {
-                    $this->updateSql .= $key . "=?,";
+                    $this->updateSql .= "`" . $key . "`" . "=?,";
                     $this->updateParams[] = $value;
                 } else {
                     $keys = array_keys($value);
                     if (is_numeric($keys[0])) {
                         if (count($keys) > 1) {
                             $v = $value[$keys[0]];
-                            $this->updateSql .= $key . "=" . $v . ",";
+                            $this->updateSql .= "`" . $key . "`" . "=" . $v . ",";
                             $this->updateParams[] = $value[$keys[1]];
                         } else {
                             $v = $value[$keys[0]];
-                            $this->updateSql .= $key . "=" . $v . ",";
+                            $this->updateSql .= "`" . $key . "`" . "=" . $v . ",";
                         }
                     } else {
                         $v = $keys[0];
@@ -535,16 +824,16 @@ class DB
             }
             $this->updateSql = substr($this->updateSql, 0, -1);
         }
-        $this::$sql = "update " . self::$dbconfig['prefix'] . $this->tablename . " set " . $this->updateSql . $this->whereSql . $this->limitSql;
+        $this::$sql    = "update " . $this->tablename . " " . $this->newTablename . " " . " set " . $this->updateSql . $this->whereSql . $this->limitSql;
         $this::$params = array_merge($this->tableParams, $this->updateParams, $this->whereParams, $this->limitParams);
-        $res = DB::$pdo->query($this::$sql, $this::$params);
+        $res           = DB::$pdo->query($this::$sql, $this::$params);
         $this->reset();
         return $res;
     }
     public function buildSql()
     {
-        $this::$sql = "SELECT " . ($this->fieldSql ?: "*") . " from " . self::$dbconfig['prefix'] . $this->tablename . $this->joinSql . $this->whereSql . $this->groupSql . $this->havingSql . $this->orderSql . $this->limitSql;
-        $this::$params = array_merge($this->updateParams, $this->whereParams, $this->limitParams);
+        $this::$sql    = "SELECT " . ($this->fieldSql ?: "*") . " from " . $this->tablename . " " . $this->newTablename . " " . $this->joinSql . $this->whereSql . $this->groupSql . $this->havingSql . $this->orderSql . $this->limitSql;
+        $this::$params = array_merge($this->whereParams,$this->havingParams, $this->limitParams);
         $this->reset();
         $return = array_merge([$this::$sql, $this::$params]);
         $this->reset();
@@ -553,24 +842,25 @@ class DB
     public function select()
     {
         if (self::$datatype == "mysql") {
-            $this::$sql = "SELECT " . ($this->fieldSql ?: "*") . " from " . self::$dbconfig['prefix'] . $this->tablename ." ". $this->joinSql ." ". $this->whereSql ." ". $this->groupSql ." having ". $this->havingSql ." ". $this->orderSql ." ". $this->limitSql;
-            $this::$params = array_merge($this->tableParams, $this->joinParams, $this->whereParams, $this->limitParams);
+            $this::$sql    = "SELECT " . ($this->fieldSql ?: "*") . " from " . $this->tablename . " " . $this->newTablename . " " . $this->joinSql . $this->whereSql . $this->groupSql . $this->havingSql . $this->orderSql . $this->limitSql;
+            $this::$params = array_merge($this->tableParams, $this->joinParams, $this->whereParams,$this->havingParams, $this->limitParams);
         } elseif (self::$datatype == "oci") {
             if ($this->limitParams) {
                 if ($this->limitParams[0]) {
-                    $this::$sql = "SELECT * from " . "(SELECT A.*,ROWNUM RN  from " . "(SELECT " . ($this->fieldSql ?: "*") . " from " . self::$dbconfig['prefix'] . $this->tablename ." ". $this->joinSql ." ". $this->whereSql ." ". $this->groupSql ." having ". $this->havingSql ." ". $this->orderSql . ") A where ROWNUM<=?) where RN>?";
+                    $this::$sql    = "SELECT * from " . "(SELECT A.*,ROWNUM RN  from " . "(SELECT " . ($this->fieldSql ?: "*") . " from " . $this->tablename . " " . $this->newTablename . " " . $this->joinSql . $this->whereSql . $this->groupSql . $this->havingSql . $this->orderSql . ") A where ROWNUM<=?) where RN>?";
                     $this::$params = array_merge($this->tableParams, $this->joinParams, $this->whereParams, $this->limitParams);
                 } else {
-                    $this::$sql = "SELECT A.*  from " . "(SELECT " . ($this->fieldSql ?: "*") . " from " . self::$dbconfig['prefix'] . $this->tablename ." ". $this->joinSql ." ". $this->whereSql ." ". $this->groupSql ." having ". $this->havingSql ." ". $this->orderSql . ") A where ROWNUM <=?";
+                    $this::$sql    = "SELECT A.*  from " . "(SELECT " . ($this->fieldSql ?: "*") . " from " . $this->tablename . " " . $this->newTablename . " " . $this->joinSql . $this->whereSql . $this->groupSql . $this->havingSql . $this->orderSql . ") A where ROWNUM <=?";
                     $this::$params = array_merge($this->tableParams, $this->joinParams, $this->whereParams, [$this->limitParams[1]]);
                 }
             } else {
-                $this::$sql = "SELECT " . ($this->fieldSql ?: "*") . " from " . self::$dbconfig['prefix'] . $this->tablename ." ". $this->joinSql ." ". $this->whereSql ." ". $this->groupSql ." having ". $this->havingSql ." ". $this->orderSql;
+                $this::$sql    = "SELECT " . ($this->fieldSql ?: "*") . " from " . $this->tablename . " " . $this->newTablename . " " . $this->joinSql . $this->whereSql . $this->groupSql . $this->havingSql . $this->orderSql;
                 $this::$params = array_merge($this->tableParams, $this->joinParams, $this->whereParams);
             }
         }
         $res = DB::$pdo->query($this::$sql, $this::$params);
         $this->reset();
+        // return [];
         return $res;
     }
     public function find()
@@ -585,10 +875,10 @@ class DB
     }
     public function count()
     {
-        $this::$sql = "SELECT 1 from " . self::$dbconfig['prefix'] . $this->tablename ." ". $this->joinSql ." ". $this->whereSql ." ". $this->groupSql ." having ". $this->havingSql ." ". $this->limitSql;
+        $this::$sql    = "SELECT 1 from " . $this->tablename . " " . $this->newTablename . " " . $this->joinSql . $this->whereSql . $this->groupSql . $this->havingSql . $this->limitSql;
         $this::$params = array_merge($this->updateParams, $this->whereParams, $this->limitParams);
-        $sql = $this::$sql;
-        $res = DB::$pdo->query($this::$sql, $this::$params);
+        $sql           = $this::$sql;
+        $res           = DB::$pdo->query($this::$sql, $this::$params);
         $this->reset();
         return $res ? count($res) : 0;
     }

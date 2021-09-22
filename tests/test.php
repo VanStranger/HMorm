@@ -21,6 +21,12 @@ DB::init(
   ->group("sex")
   ->having("num>1")
   ->select();
+  $sql=DB::table("users")->where("id",">",3)->buildSql();
+  $data1=DB::table("visitor")
+  ->join([$sql,"user"],"user.id=visitor.userid","left")
+  ->fields("user.*")
+  ->select();
   echo DB::getSql()."</br>";
   echo json_encode(DB::getParams())."</br>";
   echo json_encode($data);
+  echo json_encode($data1);

@@ -1,5 +1,6 @@
 <?php
 namespace HMorm;
+
 class PDO
 {
     private static $instance = [];
@@ -15,31 +16,31 @@ class PDO
     private $bConnected = false;
     private $log;
     private $parameters;
-    public $rowCount = 0;
+    public $rowCount    = 0;
     public $columnCount = 0;
-    public $querycount = 0;
+    public $querycount  = 0;
     private function __construct($config)
     {
-        $this->log = new Log();
-        $this->DBType = isset($config['type']) ? $config['type'] : "mysql";
-        $this->DBHost = isset($config['hostname']) ? $config['hostname'] : "127.0.0.1";
-        $this->DBUser = isset($config['username']) ? $config['username'] : "root";
+        $this->log        = new Log();
+        $this->DBType     = isset($config['type']) ? $config['type'] : "mysql";
+        $this->DBHost     = isset($config['hostname']) ? $config['hostname'] : "127.0.0.1";
+        $this->DBUser     = isset($config['username']) ? $config['username'] : "root";
         $this->DBPassword = isset($config['password']) ? $config['password'] : "root";
-        $this->DBPort = isset($config['hostport']) ? $config['hostport'] : 3306;
-        $this->DBName = isset($config['database']) ? $config['database'] : "";
-        $this->DBCharset = isset($config['charset']) ? $config['charset'] : "utf8";
+        $this->DBPort     = isset($config['hostport']) ? $config['hostport'] : 3306;
+        $this->DBName     = isset($config['database']) ? $config['database'] : "";
+        $this->DBCharset  = isset($config['charset']) ? $config['charset'] : "utf8";
         $this->connect();
         $this->parameters = array();
+    }
+    public static function setLogPath($path)
+    {
+        Log::setLogPath($path);
     }
     private function __clone()
     {
     }
     public function __destruct()
     {
-    }
-    public static function setLogPath($path)
-    {
-        Log::setLogPath($path);
     }
     public static function getInstance($config, $db)
     {
@@ -65,13 +66,13 @@ class PDO
                     $this->DBPassword,
                     array(
                         //For PHP 5.3.6 or lower
-                        \PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES " . $this->DBCharset,
-                        \PDO::ATTR_EMULATE_PREPARES => false,
+                        \PDO::MYSQL_ATTR_INIT_COMMAND       => "SET NAMES " . $this->DBCharset,
+                        \PDO::ATTR_EMULATE_PREPARES         => false,
 
                         //长连接
                         //\PDO::ATTR_PERSISTENT => true,
 
-                        \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                        \PDO::ATTR_ERRMODE                  => \PDO::ERRMODE_EXCEPTION,
                         \PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
                     )
                 );
@@ -87,7 +88,7 @@ class PDO
                         //长连接
                         //\PDO::ATTR_PERSISTENT => true,
 
-                        \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                        \PDO::ATTR_ERRMODE          => \PDO::ERRMODE_EXCEPTION,
                         // \PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true
                     )
                 );
@@ -135,7 +136,7 @@ class PDO
         }
         try {
             $this->parameters = $parameters;
-            $this->sQuery = $this->pdo->prepare($this->buildParams($query, $this->parameters));
+            $this->sQuery     = $this->pdo->prepare($this->buildParams($query, $this->parameters));
 
             if (!empty($this->parameters)) {
                 if (array_key_exists(0, $parameters)) {
@@ -152,14 +153,32 @@ class PDO
 
             $this->succes = $this->sQuery->execute();
             $this->querycount++;
-        } catch (\PDOException $e) {
+        } catch (\PDOException$e) {
             $e = $this->exceptionLog($e, $this->buildParams($query));
-            $e->sql = array(
-                "query" => $query,
-                "parameters" => $parameters,
-            );
-            // throw $e;
-            var_dump($e);
+            if (defined("DEBUG") && DEBUG === "whoops") {
+                if (isset($GLOBALS['whoops']) && $GLOBALS['whoops']) {
+                    $errorPage = new \Whoops\Handler\PrettyPageHandler();
+                    $errorPage->setPageTitle("It's broken!"); // Set the page's title
+                    $errorPage->addDataTable("Extra Info", array(
+                        "query"      => $query,
+                        "parameters" => $parameters,
+                    ));
+                    $GLOBALS['whoops']->pushHandler($errorPage);
+                    throw $e;
+                } else {
+                    $e->sql = array(
+                        "query"      => $query,
+                        "parameters" => $parameters,
+                    );
+                    throw $e;
+                }
+            } else {
+                $e->sql = array(
+                    "query"      => $query,
+                    "parameters" => $parameters,
+                );
+                throw $e;
+            }
         }
 
         $this->parameters = array();
@@ -178,7 +197,7 @@ class PDO
     }
     public function query($query, $params = null, $fetchmode = \PDO::FETCH_ASSOC)
     {
-        $query = trim($query);
+        $query        = trim($query);
         $rawStatement = explode(" ", $query);
         $this->init($query, $params);
         $statement = strtolower($rawStatement[0]);
@@ -193,8 +212,8 @@ class PDO
     public function column($query, $params = null)
     {
         $this->init($query, $params);
-        $resultColumn = $this->sQuery->fetchAll(\PDO::FETCH_COLUMN);
-        $this->rowCount = $this->sQuery->rowCount();
+        $resultColumn      = $this->sQuery->fetchAll(\PDO::FETCH_COLUMN);
+        $this->rowCount    = $this->sQuery->rowCount();
         $this->columnCount = $this->sQuery->columnCount();
         $this->sQuery->closeCursor();
         return $resultColumn;
@@ -202,8 +221,8 @@ class PDO
     public function row($query, $params = null, $fetchmode = \PDO::FETCH_ASSOC)
     {
         $this->init($query, $params);
-        $resultRow = $this->sQuery->fetch($fetchmode);
-        $this->rowCount = $this->sQuery->rowCount();
+        $resultRow         = $this->sQuery->fetch($fetchmode);
+        $this->rowCount    = $this->sQuery->rowCount();
         $this->columnCount = $this->sQuery->columnCount();
         $this->sQuery->closeCursor();
         return $resultRow;
@@ -215,7 +234,7 @@ class PDO
     }
     private function exceptionLog($e, $sql = "")
     {
-        $message = $e->getMessage();
+        $message   = $e->getMessage();
         $exception = 'Unhandled Exception. <br />';
         $exception .= $message;
         $exception .= "<br /> You can find the error back in the log.";
