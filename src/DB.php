@@ -22,7 +22,7 @@ class DB
     private $orderSql      = "";
     private $groupSql      = "";
     private $havingSql     = "";
-    private $havingParams=[];
+    private $havingParams  = [];
     private $limitSql      = "";
     private $limitParams   = [];
     private static $sql    = "";
@@ -120,14 +120,14 @@ class DB
         $this->limitParams  = [];
         $this->groupSql     = "";
         $this->havingSql    = "";
-        $this->havingParams=[];
+        $this->havingParams = [];
         // $this::$sql="";
         // $this::$params=[];
     }
     public static function connect($db)
     {
         if (!self::$instance instanceof self) {
-            self::$conn     = $db;
+            self::$conn = $db;
         } elseif (self::$conn !== $db) {
             $dbconfigs      = self::$dbconfig;
             self::$conn     = $db;
@@ -156,7 +156,7 @@ class DB
             self::$pdo      = PDO::getinstance(self::$dbconfig, self::$conn);
         }
         self::$instance = new self();
-        $db = self::$instance;
+        $db             = self::$instance;
         if (is_string($name)) {
             $db->tablename       = self::$dbconfig['prefix'] . $name;
             self::$tables[$name] = self::$dbconfig['prefix'] . $name;
@@ -203,7 +203,8 @@ class DB
         }
         if (is_string($condition)) {
             foreach (self::$tables as $key => $value) {
-                $condition = str_replace($key . ".", $value . ".", $condition);
+                $condition = preg_replace("/^\s*" . $key . "\./", $value . ".", $condition);
+                $condition = preg_replace("/\=\s*" . $key . "\./", "=" . $value . ".", $condition);
             }
             $conditionSql = $condition;
         } else {
@@ -227,7 +228,8 @@ class DB
             $this->fieldSql = substr($this->fieldSql, 0, -1);
         }
         foreach (self::$tables as $key => $value) {
-            $this->fieldSql = str_replace($key . ".", $value . ".", $this->fieldSql);
+            $this->fieldSql = preg_replace("/^\s*" . $key . "\./", $value . ".", $this->fieldSql);
+            $this->fieldSql = preg_replace("/,\s*" . $key . "\./", $value . ".", $this->fieldSql);
         }
         return $this;
     }
@@ -235,7 +237,7 @@ class DB
     {
         return $this->field($param);
     }
-    public function where($where, $param1 = null, $param2 = null)
+    public function where($where, $param1 = false, $param2 = false)
     {
         if ($this->whereSql) {
             if (substr($this->whereSql, -3) === " ( ") {
@@ -254,17 +256,23 @@ class DB
                 }
                 $isfirst = false;
                 if (is_string($value) || is_numeric($value)) {
-                    if(strstr($key,".")===false){
+                    if (strstr($key, ".") === false) {
                         $this->whereSql .= sprintf(" %s =? ", "`" . $key . "`");
-                    }else{
-                        $this->whereSql .= sprintf(" %s =? ",  $key);
+                    } else {
+                        $this->whereSql .= sprintf(" %s =? ", $key);
                     }
                     $this->whereParams[] = $value;
+                } elseif (is_null($value)) {
+                    if (strstr($key, ".") === false) {
+                        $this->whereSql .= sprintf(" %s is null ", "`" . $key . "`");
+                    } else {
+                        $this->whereSql .= sprintf(" %s is null ", $key);
+                    }
                 } elseif (is_array($value)) {
-                    if(strstr($key,".")===false){
+                    if (strstr($key, ".") === false) {
                         $this->whereSql .= sprintf(" %s", "`" . $key . "`");
-                    }else{
-                        $this->whereSql .= sprintf(" %s",  $key);
+                    } else {
+                        $this->whereSql .= sprintf(" %s", $key);
                     }
                     foreach ($value as $k => $v) {
                         $this->whereSql = $this->whereSql . $v . " ";
@@ -273,19 +281,25 @@ class DB
                 }
             }
         } elseif (is_string($where)) {
-            if ($param1 === null) {
+            if ($param1 === false) {
                 $this->whereSql .= sprintf(" %s ", $where);
-            } elseif ($param2 === null) {
+            } elseif ($param2 === false) {
                 if (is_array($param1)) {
                     $this->whereSql .= $where;
                     $this->whereParams = array_merge($this->whereParams, $param1);
+                } elseif ($param1 === null) {
+                    $this->whereSql .= $where . " is null ";
                 } else {
                     $this->whereSql .= $where . " = ? ";
                     $this->whereParams[] = $param1;
                 }
             } elseif ((is_string($param2) || is_numeric($param2)) && (is_string($param1) || is_numeric($param1))) {
-                $this->whereSql .= $where . " " . $param1 . " ? ";
-                $this->whereParams[] = $param2;
+                if(is_null($param2)){
+                    $this->whereSql .= $where . " " . $param1 . " is null ";
+                }else{
+                    $this->whereSql .= $where . " " . $param1 . " ? ";
+                    $this->whereParams[] = $param2;
+                }    
             }
         } elseif (is_callable($where, true)) {
             call_user_func($where, $this);
@@ -301,11 +315,11 @@ class DB
             $this->whereSql .= " ) ";
         }
         foreach (self::$tables as $key => $value) {
-            $this->whereSql = str_replace($key . ".", $value . ".", $this->whereSql);
+            $this->whereSql = preg_replace("/\s+" . $key . "\./", $value . ".", $this->whereSql);
         }
         return $this;
     }
-    public function whereOr($where, $param1 = null, $param2 = null)
+    public function whereOr($where, $param1 = false, $param2 = false)
     {
         if ($this->whereSql) {
             if (substr($this->whereSql, -3) === " ( ") {
@@ -324,19 +338,25 @@ class DB
                 }
                 $isfirst = false;
                 if (is_string($value) || is_numeric($value)) {
-                    if(strstr($key,".")===false){
+                    if (strstr($key, ".") === false) {
                         $this->whereSql .= sprintf(" %s =? ", "`" . $key . "`");
-                    }else{
-                        $this->whereSql .= sprintf(" %s =? ",  $key);
+                    } else {
+                        $this->whereSql .= sprintf(" %s =? ", $key);
                     }
 
                     $this->whereParams[] = $value;
+                } elseif (is_null($value)) {
+                    if (strstr($key, ".") === false) {
+                        $this->whereSql .= sprintf(" %s is null ", "`" . $key . "`");
+                    } else {
+                        $this->whereSql .= sprintf(" %s is null ", $key);
+                    }
                 } elseif (is_array($value)) {
 
-                    if(strstr($key,".")===false){
+                    if (strstr($key, ".") === false) {
                         $this->whereSql .= sprintf(" %s ", "`" . $key . "`");
-                    }else{
-                        $this->whereSql .= sprintf(" %s ",  $key);
+                    } else {
+                        $this->whereSql .= sprintf(" %s ", $key);
                     }
 
                     foreach ($value as $k => $v) {
@@ -346,19 +366,25 @@ class DB
                 }
             }
         } elseif (is_string($where)) {
-            if ($param1 === null) {
+            if ($param1 === false) {
                 $this->whereSql .= sprintf(" %s ", $where);
-            } elseif ($param2 === null) {
+            } elseif ($param2 === false) {
                 if (is_array($param1)) {
                     $this->whereSql .= $where;
                     $this->whereParams = array_merge($this->whereParams, $param1);
+                } elseif ($param1 === null) {
+                    $this->whereSql .= $where . " is null ";
                 } else {
                     $this->whereSql .= $where . "=? ";
                     $this->whereParams[] = $param1;
                 }
             } elseif ((is_string($param2) || is_numeric($param2)) && (is_string($param1) || is_numeric($param1))) {
-                $this->whereSql .= $where . " " . $param1 . " ? ";
-                $this->whereParams[] = $param2;
+                if(is_null($param2)){
+                    $this->whereSql .= $where . " " . $param1 . " is null ";
+                }else{
+                    $this->whereSql .= $where . " " . $param1 . " ? ";
+                    $this->whereParams[] = $param2;
+                }    
             }
         } elseif (is_callable($where, true)) {
             call_user_func($where, $this);
@@ -373,7 +399,7 @@ class DB
             $this->whereSql .= " ) ";
         }
         foreach (self::$tables as $key => $value) {
-            $this->whereSql = str_replace($key . ".", $value . ".", $this->whereSql);
+            $this->whereSql = preg_replace("/\s+" . $key . "\./", $value . ".", $this->whereSql);
         }
         return $this;
     }
@@ -389,7 +415,11 @@ class DB
             $this->whereSql = " where ( ";
         }
         if (is_string($param1) && is_array($param2)) {
-            $this->whereSql .= sprintf(" %s in ( ", "`" . $param1 . "`");
+            if (strstr($param1, ".") === false) {
+                $this->whereSql .= sprintf(" %s in ( ", "`" . $param1 . "`");
+            } else {
+                $this->whereSql .= sprintf(" %s in ( ", $param1);
+            }
             foreach ($param2 as $key => $value) {
                 $this->whereSql .= "?,";
                 $this->whereParams[] = $value;
@@ -408,7 +438,7 @@ class DB
             $this->whereSql .= " ) ";
         }
         foreach (self::$tables as $key => $value) {
-            $this->whereSql = str_replace($key . ".", $value . ".", $this->whereSql);
+            $this->whereSql = preg_replace("/\s+" . $key . "\./", $value . ".", $this->whereSql);
         }
         return $this;
     }
@@ -456,7 +486,7 @@ class DB
             $this->whereSql .= " ) ";
         }
         foreach (self::$tables as $key => $value) {
-            $this->whereSql = str_replace($key . ".", $value . ".", $this->whereSql);
+            $this->whereSql = preg_replace("/\s+" . $key . "\./", $value . ".", $this->whereSql);
         }
         return $this;
     }
@@ -504,7 +534,7 @@ class DB
             $this->whereSql .= " ) ";
         }
         foreach (self::$tables as $key => $value) {
-            $this->whereSql = str_replace($key . ".", $value . ".", $this->whereSql);
+            $this->whereSql = preg_replace("/\s+" . $key . "\./", $value . ".", $this->whereSql);
         }
         return $this;
     }
@@ -552,7 +582,7 @@ class DB
             $this->whereSql .= " ) ";
         }
         foreach (self::$tables as $key => $value) {
-            $this->whereSql = str_replace($key . ".", $value . ".", $this->whereSql);
+            $this->whereSql = preg_replace("/\s+" . $key . "\./", $value . ".", $this->whereSql);
         }
         return $this;
     }
@@ -560,15 +590,20 @@ class DB
     {
         if (is_string($group)) {
             $this->groupSql = $this->groupSql ? $this->groupSql . "," . $group : " group by " . $group;
+        } elseif (is_array($group)) {
+            foreach ($group as $key => $value) {
+                $this->groupSql = $this->groupSql ? $this->groupSql . "," . $value : " group by " . $value;
+            }
         } elseif (is_callable($group, true)) {
             call_user_func($group, $this);
         }
         foreach (self::$tables as $key => $value) {
-            $this->groupSql = str_replace($key . ".", $value . ".", $this->groupSql);
+            $this->groupSql = preg_replace("/^\s*" . $key . "\./", $value . ".", $this->groupSql);
+            $this->groupSql = preg_replace("/,\s*" . $key . "\./", $value . ".", $this->groupSql);
         }
         return $this;
     }
-    public function having($having, $param1 = null, $param2 = null)
+    public function having($having, $param1 = false, $param2 = false)
     {
         if ($this->havingSql) {
             if (substr($this->havingSql, -3) === " ( ") {
@@ -587,17 +622,23 @@ class DB
                 }
                 $isfirst = false;
                 if (is_string($value) || is_numeric($value)) {
-                    if(strstr($key,".")===false){
+                    if (strstr($key, ".") === false) {
                         $this->havingSql .= sprintf(" %s =? ", "`" . $key . "`");
-                    }else{
-                        $this->havingSql .= sprintf(" %s =? ",  $key );
+                    } else {
+                        $this->havingSql .= sprintf(" %s =? ", $key);
                     }
                     $this->havingParams[] = $value;
+                } elseif (is_null($value)) {
+                    if (strstr($key, ".") === false) {
+                        $this->havingSql .= sprintf(" %s in null ", "`" . $key . "`");
+                    } else {
+                        $this->havingSql .= sprintf(" %s in null ", $key);
+                    }
                 } elseif (is_array($value)) {
-                    if(strstr($key,".")===false){
+                    if (strstr($key, ".") === false) {
                         $this->havingSql .= sprintf(" %s ", "`" . $key . "`");
-                    }else{
-                        $this->havingSql .= sprintf(" %s ",  $key );
+                    } else {
+                        $this->havingSql .= sprintf(" %s ", $key);
                     }
                     foreach ($value as $k => $v) {
                         $this->havingSql = $this->havingSql . $v . " ";
@@ -606,19 +647,25 @@ class DB
                 }
             }
         } elseif (is_string($having)) {
-            if ($param1 === null) {
+            if ($param1 === false) {
                 $this->havingSql .= sprintf(" %s ", $having);
-            } elseif ($param2 === null) {
+            } elseif ($param2 === false) {
                 if (is_array($param1)) {
                     $this->havingSql .= $having;
                     $this->havingParams = array_merge($this->havingParams, $param1);
+                } else if (is_null($param1)) {
+                    $this->havingSql .= $having . " is null ";
                 } else {
                     $this->havingSql .= $having . " = ? ";
                     $this->havingParams[] = $param1;
                 }
             } elseif ((is_string($param2) || is_numeric($param2)) && (is_string($param1) || is_numeric($param1))) {
-                $this->havingSql .= $having . " " . $param1 . " ? ";
-                $this->havingParams[] = $param2;
+                if(is_null($param2)){
+                    $this->havingSql .= $having . " " . $param1 . " is null ";
+                }else{
+                    $this->havingSql .= $having . " " . $param1 . " ? ";
+                    $this->havingParams[] = $param2;
+                }
             }
         } elseif (is_callable($having, true)) {
             call_user_func($having, $this);
@@ -634,7 +681,8 @@ class DB
             $this->havingSql .= " ) ";
         }
         foreach (self::$tables as $key => $value) {
-            $this->havingSql = str_replace($key . ".", $value . ".", $this->havingSql);
+            $this->havingSql = preg_replace("/\s+" . $key . "\./", $value . ".", $this->havingSql);
+
         }
         return $this;
     }
@@ -642,21 +690,26 @@ class DB
     {
         if (is_string($order)) {
             $this->orderSql = $this->orderSql ? "," . $order : " order by " . $order;
+        } elseif (is_array($order)) {
+            foreach ($order as $key => $value) {
+                $this->orderSql = $this->orderSql ? "," . $value : " order by " . $value;
+            }
         } elseif (is_callable($order, true)) {
             call_user_func($order, $this);
         }
         foreach (self::$tables as $key => $value) {
-            $this->orderSql = str_replace($key . ".", $value . ".", $this->orderSql);
+            $this->orderSql = preg_replace("/^\s*" . $key . "\./", $value . ".", $this->orderSql);
+            $this->orderSql = preg_replace("/,\s*" . $key . "\./", $value . ".", $this->orderSql);
         }
         return $this;
     }
-    public function limit($start, $size = null)
+    public function limit($start, $size = false)
     {
         if (is_callable($start, true)) {
             call_user_func($start, $this);
         } else {
             if (self::$datatype == "mysql") {
-                if ($size === null) {
+                if ($size === false) {
                     $this->limitSql    = " limit ? ";
                     $this->limitParams = [$start];
                 } else {
@@ -707,7 +760,7 @@ class DB
         $lies         = $arr         = DB::query("SHOW COLUMNS FROM `" . $this->tablename . "`");
         $param1       = [];
         foreach ($lies as $key => $value) {
-            if (array_key_exists($value['Field'], $param) && (!$setnull || $value !== null)) {
+            if (array_key_exists($value['Field'], $param) && (!$setnull || $value !== false)) {
                 $param1[$value['Field']] = $param[$value['Field']];
             }
         }
@@ -733,7 +786,7 @@ class DB
             return $res;
         } else {
             throw new \Exception("插入数据不能为空", 1);
-            return null;
+            return false;
         }
     }
     public function delete($force = 0)
@@ -747,7 +800,7 @@ class DB
         $this->reset();
         return $res;
     }
-    public function update($param, $param1 = null)
+    public function update($param, $param1 = false)
     {
         if (is_array($param)) {
             foreach ($param as $key => $value) {
@@ -774,7 +827,7 @@ class DB
             }
             $this->updateSql = substr($this->updateSql, 0, -1);
         } elseif (is_string($param)) {
-            if ($param1 === null) {
+            if ($param1 === false) {
                 $this->updateSql .= $param;
             } elseif (is_array($param1)) {
                 $this->updateSql .= $param;
@@ -795,7 +848,7 @@ class DB
         $lies  = $arr  = DB::query("SHOW COLUMNS FROM `" . $this->tablename . "`");
         $param = [];
         foreach ($lies as $key => $value) {
-            if (array_key_exists($value['Field'], $param1) && (!$setnull || $value !== null)) {
+            if (array_key_exists($value['Field'], $param1) && (!$setnull || $value !== false)) {
                 $param[$value['Field']] = $param1[$value['Field']];
             }
         }
@@ -833,7 +886,7 @@ class DB
     public function buildSql()
     {
         $this::$sql    = "SELECT " . ($this->fieldSql ?: "*") . " from " . $this->tablename . " " . $this->newTablename . " " . $this->joinSql . $this->whereSql . $this->groupSql . $this->havingSql . $this->orderSql . $this->limitSql;
-        $this::$params = array_merge($this->whereParams,$this->havingParams, $this->limitParams);
+        $this::$params = array_merge($this->whereParams, $this->havingParams, $this->limitParams);
         $this->reset();
         $return = array_merge([$this::$sql, $this::$params]);
         $this->reset();
@@ -843,7 +896,7 @@ class DB
     {
         if (self::$datatype == "mysql") {
             $this::$sql    = "SELECT " . ($this->fieldSql ?: "*") . " from " . $this->tablename . " " . $this->newTablename . " " . $this->joinSql . $this->whereSql . $this->groupSql . $this->havingSql . $this->orderSql . $this->limitSql;
-            $this::$params = array_merge($this->tableParams, $this->joinParams, $this->whereParams,$this->havingParams, $this->limitParams);
+            $this::$params = array_merge($this->tableParams, $this->joinParams, $this->whereParams, $this->havingParams, $this->limitParams);
         } elseif (self::$datatype == "oci") {
             if ($this->limitParams) {
                 if ($this->limitParams[0]) {
@@ -868,7 +921,7 @@ class DB
         if (self::$datatype == "mysql") {
             $this->limitSql = " limit 1 ";
         } elseif (self::$datatype == "oci") {
-            $this->limitParams = [null, 1];
+            $this->limitParams = [false, 1];
         }
         $arr = $this->select();
         return $arr ? $arr[0] : false;
