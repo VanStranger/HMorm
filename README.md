@@ -153,74 +153,91 @@ DB::closeConn();
     
 
     设置sql查询的数据表,返回DB的实例。
-```php
-DB::table(string $table);
-DB::table(array $table);
-```
-    1. $table为字符串时，选择以$table为名的数据表。例：
-    DB::table("user")->select();
-    会转化为
-    select * from user;
+    ```php
+    DB::table(string $table);
+    DB::table(array $table);
+    ```
+    1. $table为字符串时，选择以$table为名的数据表。
+  
+            例：
+            DB::table("user")->select();
+            会转化为
+            select * from user;
     2. $table为数组时：
+
         2.1 若$table的长度为1，会选择以$table的key为名的数据表，并用$value作为数据表的别名。
-        例：
-          DB::table(["user"=>"u"])->select();
-          会转化为 
-          select * from user u;
+
+            例：
+            DB::table(["user"=>"u"])->select();
+            会转化为 
+            select * from user u;
+
         2.2 若$table的长度为2，则$table第0项应该是一个长度为2的数组（并且此数组的第0项应该是字符串，第1项应该是数组），第1项应该是一个字符串。会选择以第0项代表的数据表，并用第一项作为数据表的别名。
-        例：
-          DB::table([["select id from user where id>?",[1]],"u"])->select();
-          会转化为 
-          select * from ( select id from user where id>1) u;
+
+            例：
+            DB::table([["select id from user where id>?",[1]],"u"])->select();
+            会转化为 
+            select * from ( select id from user where id>1) u;
 * 方法 join
     
     跨表查询时,设置需要连接的表、连接条件、连接方式。返回$this。
-```php
-join(string $table,string $condition,string $jointype);
-join(array $table,string $condition,string $jointype);
-``` 
-    $table 为要连接的表。
-    $condition 为连接条件,如 tableA.id=tableB.userid。
-    $jointype 为连接方式，只有三个选项：left ，right ，inner。默认为inner。
-    1. $table为字符串时，选择以$table为名的数据表。
-    例：
-      DB::table("user")->join("work","user.id=work.userid")->select();
-      会转化为
-      select * from user inner join work on user.id=work.userid;
 
-      DB::table("user")->join("work","user.id=work.userid","left")->select();
-      会转化为
-      select * from user left join work on user.id=work.userid;
+    ```php
+    join(string $table,string $condition,string $jointype);
+    join(array $table,string $condition,string $jointype);
+    ``` 
+    $table 为要连接的表。
+
+    $condition 为连接条件,如 tableA.id=tableB.userid。
+
+    $jointype 为连接方式，只有三个选项：left ，right ，inner。默认为inner。
+
+    1. $table为字符串时，选择以$table为名的数据表。
+
+        例：
+        DB::table("user")->join("work","user.id=work.userid")->select();
+        会转化为
+        select * from user inner join work on user.id=work.userid;
+
+        DB::table("user")->join("work","user.id=work.userid","left")->select();
+        会转化为
+        select * from user left join work on user.id=work.userid;
     
     2. $table为数组时：
+
         2.1 若$table的长度为1，会连接以$table的key为名的数据表，并用$value作为数据表的别名。
-        例：
-          DB::table("user")->join(["work"=>"w"],"user.id=w.userid")->select();
-          会转化为 
-          select * from user inner join work w on user.id=w.userid;
+
+            例：
+            DB::table("user")->join(["work"=>"w"],"user.id=w.userid")->select();
+            会转化为 
+            select * from user inner join work w on user.id=w.userid;
+
         2.2 若$table的长度为2，则$table第0项应该是一个长度为2的数组（并且此数组的第0项应该是字符串，第1项应该是数组），第1项应该是一个字符串。会连接以第0项代表的数据表，并用第一项作为数据表的别名。
-        例：
-          DB::table("user")->join([["select * from work where id>?",[1]],"w"],"user.id=w.userid")->select();
-          会转化为 
-          select * from user inner join ( select id from work where id>1) w on user.id=w.userid;
+          
+            例：
+            DB::table("user")->join([["select * from work where id>?",[1]],"w"],"user.id=w.userid")->select();
+            会转化为 
+            select * from user inner join ( select id from work where id>1) w on user.id=w.userid;
 * 方法 field
     
     设置要查询的字段。返回$this。
-```php
-field(string $field);
-field(array $field);
-``` 
+    ```php
+    field(string $field);
+    field(array $field);
+    ``` 
     1. $field为字符串时，将$field作为要查询的字段。
-    例：
-      DB::table("user")->field("id,user.username")->select();
-      会转化为
-      select id,user.username from user ;
+
+            例：
+            DB::table("user")->field("id,user.username")->select();
+            会转化为
+            select id,user.username from user ;
 
     2. $field为数组时,会将$field的所有项作为字段查询。当key为数字时，会将value作为字段；当key为字符串时，会将key作为字段，value作为别名。
-    例：
-      DB::table("user")->field(["id","username"=>"u"])->select();
-      会转化为 
-      select id,username as u from user;
+
+            例：
+            DB::table("user")->field(["id","username"=>"u"])->select();
+            会转化为 
+            select id,username as u from user;
 * 方法 fields
     
     设置要查询的字段。返回$this。同field方法。     
@@ -228,60 +245,69 @@ field(array $field);
     
 
     设置sql查询的查询条件，可以多次执行，多次执行的条件用 and 连接。返回$this。
-```php
-where(string $sql);
-where(string $sql,array $params);
-where(string $key,string $value);
-where(string $key,string $value1,string $value2);
-where(array $array)
-where(callable $function)
-```
+    ```php
+    where(string $sql);
+    where(string $sql,array $params);
+    where(string $key,string $value);
+    where(string $key,string $value1,string $value2);
+    where(array $array)
+    where(callable $function)
+    ```
     1. 第一个参数为字符串时：
-        1.1 如果只有一个参数，且第一个参数为字符串，则会将第一个参数作为条件。例：
-        DB::table("user")->where("id>1")->select();
-        会转化为
-        select * from user where ( id >1 );
+
+        1.1 如果只有一个参数，且第一个参数为字符串，则会将第一个参数作为条件。
+
+            例：
+            DB::table("user")->where("id>1")->select();
+            会转化为
+            select * from user where ( id >1 );
         1.2 如果只有两个参数，且第一个参数为字符串，第二个参数为数组，则会将第一个参数作为条件，第二个参数为预处理参数。
-        例：
-        DB::table("user")->where("id>?",[1])->select();
-        会转化为
-        sql:select * from user where ( `id` > ? );
-        params:[1]
-        1.3 如果只有两个参数，且第一个参数为字符串，第二个参数为字符串、数字或null，则会将第一个参数作为条件，第二个参数为预处理参数，预处理为第一个参数=第二个参数。例：
-        DB::table("user")->where("id",1)->select();
-        会转化为
-        sql:select * from user where ( `id` = ? );
-        params:[1]
-        1.4 如果有三个参数，且第一个参数为字符串，第二个参数为数字或字符串，第三个参数为null、数字或字符串，则会将第一个参数与第二个参数拼接为条件，第三个参数为预处理参数。例：
-        DB::table("user")->where("id",">",1)->select();
-        会转化为
-        sql:select * from user where ( `id` > ? );
-        params:[1]
+        
+            例：
+            DB::table("user")->where("id>?",[1])->select();
+            会转化为
+            sql:select * from user where ( `id` > ? );
+            params:[1]
+        1.3 如果只有两个参数，且第一个参数为字符串，第二个参数为字符串、数字或null，则会将第一个参数作为条件，第二个参数为预处理参数，预处理为第一个参数=第二个参数。
+        
+            例：
+            DB::table("user")->where("id",1)->select();
+            会转化为
+            sql:select * from user where ( `id` = ? );
+            params:[1]
+        1.4 如果有三个参数，且第一个参数为字符串，第二个参数为数字或字符串，第三个参数为null、数字或字符串，则会将第一个参数与第二个参数拼接为条件，第三个参数为预处理参数。
+        
+            例：
+            DB::table("user")->where("id",">",1)->select();
+            会转化为
+            sql:select * from user where ( `id` > ? );
+            params:[1]
 
 
-    2. 第一个参数为数组时，会将数组的每一项都所谓条件用and连接起来作为条件。如果某一项的value为数字或字符串会拼接进预处理参数数组，如果value为null会将条件设置为 key is
-     null，如果value是数组，会将数组的value依次拼接进sql语句。
-     例：
-        DB::table(["user"=>"u"])->where([
-          "id"=>[">",1],
-          "username"=>"phporm",
-          "xingfuma"=>null,
-        ])->select();
-        会转化为 
-        sql:select * from user u where ( `id` > 1 and `username` = ? and `xingfuma` is null);
-        params:["phporm"];
+    2. 第一个参数为数组时，会将数组的每一项都所谓条件用and连接起来作为条件。如果某一项的value为数字或字符串会拼接进预处理参数数组，如果value为null会将条件设置为 key is null，如果value是数组，会将数组的value依次拼接进sql语句。
+
+            例：
+            DB::table(["user"=>"u"])->where([
+              "id"=>[">",1],
+              "username"=>"phporm",
+              "xingfuma"=>null,
+            ])->select();
+            会转化为 
+            sql:select * from user u where ( `id` > 1 and `username` = ? and `xingfuma` is null);
+            params:["phporm"];
     3. 第一个参数为函数时，会将当前实例作为函数的第一个参数执行此函数。
-     例：
-        DB::table(["user"=>"u"])->where(function($q)use($search){
-          if($search){
-            $q->where("username like ?",["%".$search."%"]);
-          }
-        })->select();
-        $search判断为真时，会转化为 
-        sql:select * from user u where (  `username` like ? );
-        params:[$search];
-        $search判断为假时，会转化为 
-        sql:select * from user u ;
+     
+            例：
+            DB::table(["user"=>"u"])->where(function($q)use($search){
+              if($search){
+                $q->where("username like ?",["%".$search."%"]);
+              }
+            })->select();
+            $search判断为真时，会转化为 
+            sql:select * from user u where (  `username` like ? );
+            params:[$search];
+            $search判断为假时，会转化为 
+            sql:select * from user u ;
 * 方法 whereOr
     
 
@@ -289,112 +315,120 @@ where(callable $function)
 * 方法 whereIn
     
     设置sql查询的查询条件，可以多次执行，多次执行的条件用 and 连接。返回$this。
-```php
+    ```php
 
-where(string $key,array $value);
-where(callable $function)
-```
+    where(string $key,array $value);
+    where(callable $function)
+    ```
     1. 第一个参数为字符串时，第二个参数为数组时，设置为名称为第一个参数的字段 in 第二个参数的数组中的所有项的条件。
-    例：
-      DB::table("user")->whereIn("id",[1,2,3])->select();
-      会转化为
-      select * from user where ( `id` in (1,2,3) );
+    
+            例：
+            DB::table("user")->whereIn("id",[1,2,3])->select();
+            会转化为
+            select * from user where ( `id` in (1,2,3) );
     2. 第一个参数为函数时，会将当前实例作为函数的第一个参数执行此函数。
-     例：
-        DB::table(["user"=>"u"])->whereIn(function($q)use($condition){
-          if($condition){
-            $q->whereIn("id",[1,2,3]);
-          }
-        })->select();
-        $condition判断为真时，会转化为 
-        sql:select * from user u where ( id in (1,2,3) );
-        params:[$condition];
-        $condition判断为假时，会转化为 
-        sql:select * from user u ;    
+        
+            例：
+            DB::table(["user"=>"u"])->whereIn(function($q)use($condition){
+              if($condition){
+                $q->whereIn("id",[1,2,3]);
+              }
+            })->select();
+            $condition判断为真时，会转化为 
+            sql:select * from user u where ( id in (1,2,3) );
+            params:[$condition];
+            $condition判断为假时，会转化为 
+            sql:select * from user u ;    
 * 方法 whereLikeEntity
     
     设置sql查询的查询条件，可以多次执行，多次执行的条件用 and 连接。返回$this。
-```php
+    ```php
 
-whereLikeEntity(array $entity,bool $condition = true);
-whereLikeEntity(callable $function);
-```
-    1.查询当前表的所有字段，对数组entity中的key列表中存在的字段用like模糊查询并用and（第二个参数为false时用or）连接。
-    例：
-      DB::table("user")->whereLikeEntity(['username"=>"李","address"=>"平山县"])->select();
-      如果user表有username字段，没有address字段会转化为
-      sql:select * from user where ( `username` like ? );
-      params:["%李%"];
-      如果user表有username字段和address字段会转化为
-      sql:select * from user where ( `username` like ? and `address` like ? );
-      params:["%李%","%平山县%"];
+    whereLikeEntity(array $entity,bool $condition = true);
+    whereLikeEntity(callable $function);
+    ```
+    1. 查询当前表的所有字段，对数组entity中的key列表中存在的字段用like模糊查询并用and（第二个参数为false时用or）连接。
+    
+            例：
+            DB::table("user")->whereLikeEntity(['username"=>"李","address"=>"平山县"])->select();
+            如果user表有username字段，没有address字段会转化为
+            sql:select * from user where ( `username` like ? );
+            params:["%李%"];
+            如果user表有username字段和address字段会转化为
+            sql:select * from user where ( `username` like ? and `address` like ? );
+            params:["%李%","%平山县%"];
     2. 第一个参数为函数时，会将当前实例作为函数的第一个参数执行此函数。
-    例：
-    DB::table("user")->whereLikeEntity(funcion($q){
-      $q->whereLikeEntity(['username"=>"李","address"=>"平山县"]);
-    })->select();
-      如果user表有username字段，没有address字段会转化为
-      sql:select * from user where ( `username` like ? );
-      params:["%李%"];
-      如果user表有username字段和address字段会转化为
-      sql:select * from user where ( `username` like ? and `address` like ? );
-      params:["%李%","%平山县%"];
+    
+            例：
+            DB::table("user")->whereLikeEntity(funcion($q){
+              $q->whereLikeEntity(['username"=>"李","address"=>"平山县"]);
+            })->select();
+              如果user表有username字段，没有address字段会转化为
+              sql:select * from user where ( `username` like ? );
+              params:["%李%"];
+              如果user表有username字段和address字段会转化为
+              sql:select * from user where ( `username` like ? and `address` like ? );
+              params:["%李%","%平山县%"];
 * 方法 whereLeftLikeEntity
     
     设置sql查询的查询条件，可以多次执行，多次执行的条件用 and 连接。返回$this。
-```php
+    ```php
 
-whereLeftLikeEntity(array $entity,bool $condition = true);
-whereLeftLikeEntity(callable $function);
-```
-    1.查询当前表的所有字段，对数组entity中的key列表中存在的字段用like左匹配模糊查询并用and（第二个参数为false时用or）连接。
-    例：
-      DB::table("user")->whereLeftLikeEntity(['username"=>"李","address"=>"平山县"])->select();
-      如果user表有username字段，没有address字段会转化为
-      sql:select * from user where ( `username` like ? );
-      params:["李%"];
-      如果user表有username字段和address字段会转化为
-      sql:select * from user where ( `username` like ? and `address` like ? );
-      params:["李%","平山县%"];
+    whereLeftLikeEntity(array $entity,bool $condition = true);
+    whereLeftLikeEntity(callable $function);
+    ```
+    1. 查询当前表的所有字段，对数组entity中的key列表中存在的字段用like左匹配模糊查询并用and（第二个参数为false时用or）连接。
+      
+            例：
+            DB::table("user")->whereLeftLikeEntity(['username"=>"李","address"=>"平山县"])->select();
+            如果user表有username字段，没有address字段会转化为
+            sql:select * from user where ( `username` like ? );
+            params:["李%"];
+            如果user表有username字段和address字段会转化为
+            sql:select * from user where ( `username` like ? and `address` like ? );
+            params:["李%","平山县%"];
     2. 第一个参数为函数时，会将当前实例作为函数的第一个参数执行此函数。
-    例：
-    DB::table("user")->whereLeftLikeEntity(funcion($q){
-      $q->whereLeftLikeEntity(['username"=>"李","address"=>"平山县"]);
-    })->select();
-      如果user表有username字段，没有address字段会转化为
-      sql:select * from user where ( `username` like ? );
-      params:["李%"];
-      如果user表有username字段和address字段会转化为
-      sql:select * from user where ( `username` like ? and `address` like ? );
-      params:["李%","平山县%"];
+    
+            例：
+            DB::table("user")->whereLeftLikeEntity(funcion($q){
+              $q->whereLeftLikeEntity(['username"=>"李","address"=>"平山县"]);
+            })->select();
+              如果user表有username字段，没有address字段会转化为
+              sql:select * from user where ( `username` like ? );
+              params:["李%"];
+              如果user表有username字段和address字段会转化为
+              sql:select * from user where ( `username` like ? and `address` like ? );
+              params:["李%","平山县%"];
 * 方法 whereRightLikeEntity
     
     设置sql查询的查询条件，可以多次执行，多次执行的条件用 and 连接。返回$this。
-```php
+    ```php
 
-whereRightLikeEntity(array $entity,bool $condition = true);
-whereRightLikeEntity(callable $function);
-```
-    1.查询当前表的所有字段，对数组entity中的key列表中存在的字段用like右匹配模糊查询并用and（第二个参数为false时用or）连接。
-    例：
-      DB::table("user")->whereRightLikeEntity(['username"=>"李","address"=>"平山县"])->select();
-      如果user表有username字段，没有address字段会转化为
-      sql:select * from user where ( `username` like ? );
-      params:["%李"];
-      如果user表有username字段和address字段会转化为
-      sql:select * from user where ( `username` like ? and `address` like ? );
-      params:["%李","%平山县"];
+    whereRightLikeEntity(array $entity,bool $condition = true);
+    whereRightLikeEntity(callable $function);
+    ```
+    1. 查询当前表的所有字段，对数组entity中的key列表中存在的字段用like右匹配模糊查询并用and（第二个参数为false时用or）连接。
+      
+              例：
+              DB::table("user")->whereRightLikeEntity(['username"=>"李","address"=>"平山县"])->select();
+              如果user表有username字段，没有address字段会转化为
+              sql:select * from user where ( `username` like ? );
+              params:["%李"];
+              如果user表有username字段和address字段会转化为
+              sql:select * from user where ( `username` like ? and `address` like ? );
+              params:["%李","%平山县"];
     2. 第一个参数为函数时，会将当前实例作为函数的第一个参数执行此函数。
-    例：
-    DB::table("user")->whereRightLikeEntity(funcion($q){
-      $q->whereRightLikeEntity(['username"=>"李","address"=>"平山县"]);
-    })->select();
-      如果user表有username字段，没有address字段会转化为
-      sql:select * from user where ( `username` like ? );
-      params:["%李"];
-      如果user表有username字段和address字段会转化为
-      sql:select * from user where ( `username` like ? and `address` like ? );
-      params:["%李","%平山县"];
+    
+            例：
+            DB::table("user")->whereRightLikeEntity(funcion($q){
+              $q->whereRightLikeEntity(['username"=>"李","address"=>"平山县"]);
+            })->select();
+              如果user表有username字段，没有address字段会转化为
+              sql:select * from user where ( `username` like ? );
+              params:["%李"];
+              如果user表有username字段和address字段会转化为
+              sql:select * from user where ( `username` like ? and `address` like ? );
+              params:["%李","%平山县"];
       ~~~
       还有约三分之一的方法，待续。
       ~~~
