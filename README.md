@@ -165,19 +165,19 @@ DB::closeConn();
             select * from user;
     2. $table为数组时：
 
-        2.1 若$table的长度为1，会选择以$table的key为名的数据表，并用$value作为数据表的别名。
+        1. 若$table的长度为1，会选择以$table的key为名的数据表，并用$value作为数据表的别名。
 
-            例：
-            DB::table(["user"=>"u"])->select();
-            会转化为 
-            select * from user u;
+                例：
+                DB::table(["user"=>"u"])->select();
+                会转化为 
+                select * from user u;
 
-        2.2 若$table的长度为2，则$table第0项应该是一个长度为2的数组（并且此数组的第0项应该是字符串，第1项应该是数组），第1项应该是一个字符串。会选择以第0项代表的数据表，并用第一项作为数据表的别名。
+        2. 若$table的长度为2，则$table第0项应该是一个长度为2的数组（并且此数组的第0项应该是字符串，第1项应该是数组），第1项应该是一个字符串。会选择以第0项代表的数据表，并用第一项作为数据表的别名。
 
-            例：
-            DB::table([["select id from user where id>?",[1]],"u"])->select();
-            会转化为 
-            select * from ( select id from user where id>1) u;
+                例：
+                DB::table([["select id from user where id>?",[1]],"u"])->select();
+                会转化为 
+                select * from ( select id from user where id>1) u;
 * 方法 join
     
     跨表查询时,设置需要连接的表、连接条件、连接方式。返回$this。
@@ -194,30 +194,30 @@ DB::closeConn();
 
     1. $table为字符串时，选择以$table为名的数据表。
 
-        例：
-        DB::table("user")->join("work","user.id=work.userid")->select();
-        会转化为
-        select * from user inner join work on user.id=work.userid;
+            例：
+            DB::table("user")->join("work","user.id=work.userid")->select();
+            会转化为
+            select * from user inner join work on user.id=work.userid;
 
-        DB::table("user")->join("work","user.id=work.userid","left")->select();
-        会转化为
-        select * from user left join work on user.id=work.userid;
+            DB::table("user")->join("work","user.id=work.userid","left")->select();
+            会转化为
+            select * from user left join work on user.id=work.userid;
     
     2. $table为数组时：
 
-        2.1 若$table的长度为1，会连接以$table的key为名的数据表，并用$value作为数据表的别名。
+        1. 若$table的长度为1，会连接以$table的key为名的数据表，并用$value作为数据表的别名。
 
-            例：
-            DB::table("user")->join(["work"=>"w"],"user.id=w.userid")->select();
-            会转化为 
-            select * from user inner join work w on user.id=w.userid;
+                例：
+                DB::table("user")->join(["work"=>"w"],"user.id=w.userid")->select();
+                会转化为 
+                select * from user inner join work w on user.id=w.userid;
 
-        2.2 若$table的长度为2，则$table第0项应该是一个长度为2的数组（并且此数组的第0项应该是字符串，第1项应该是数组），第1项应该是一个字符串。会连接以第0项代表的数据表，并用第一项作为数据表的别名。
+        2. 若$table的长度为2，则$table第0项应该是一个长度为2的数组（并且此数组的第0项应该是字符串，第1项应该是数组），第1项应该是一个字符串。会连接以第0项代表的数据表，并用第一项作为数据表的别名。
           
-            例：
-            DB::table("user")->join([["select * from work where id>?",[1]],"w"],"user.id=w.userid")->select();
-            会转化为 
-            select * from user inner join ( select id from work where id>1) w on user.id=w.userid;
+                例：
+                DB::table("user")->join([["select * from work where id>?",[1]],"w"],"user.id=w.userid")->select();
+                会转化为 
+                select * from user inner join ( select id from work where id>1) w on user.id=w.userid;
 * 方法 field
     
     设置要查询的字段。返回$this。
@@ -255,27 +255,27 @@ DB::closeConn();
     ```
     1. 第一个参数为字符串时：
 
-        1.1 如果只有一个参数，且第一个参数为字符串，则会将第一个参数作为条件。
+        1. 如果只有一个参数，且第一个参数为字符串，则会将第一个参数作为条件。
 
-            例：
-            DB::table("user")->where("id>1")->select();
-            会转化为
-            select * from user where ( id >1 );
-        1.2 如果只有两个参数，且第一个参数为字符串，第二个参数为数组，则会将第一个参数作为条件，第二个参数为预处理参数。
+                例：
+                DB::table("user")->where("id>1")->select();
+                会转化为
+                select * from user where ( id >1 );
+        2. 如果只有两个参数，且第一个参数为字符串，第二个参数为数组，则会将第一个参数作为条件，第二个参数为预处理参数。
         
-            例：
-            DB::table("user")->where("id>?",[1])->select();
-            会转化为
-            sql:select * from user where ( `id` > ? );
-            params:[1]
-        1.3 如果只有两个参数，且第一个参数为字符串，第二个参数为字符串、数字或null，则会将第一个参数作为条件，第二个参数为预处理参数，预处理为第一个参数=第二个参数。
+                例：
+                DB::table("user")->where("id>?",[1])->select();
+                会转化为
+                sql:select * from user where ( `id` > ? );
+                params:[1]
+        3. 如果只有两个参数，且第一个参数为字符串，第二个参数为字符串、数字或null，则会将第一个参数作为条件，第二个参数为预处理参数，预处理为第一个参数=第二个参数。
         
-            例：
-            DB::table("user")->where("id",1)->select();
-            会转化为
-            sql:select * from user where ( `id` = ? );
-            params:[1]
-        1.4 如果有三个参数，且第一个参数为字符串，第二个参数为数字或字符串，第三个参数为null、数字或字符串，则会将第一个参数与第二个参数拼接为条件，第三个参数为预处理参数。
+                例：
+                DB::table("user")->where("id",1)->select();
+                会转化为
+                sql:select * from user where ( `id` = ? );
+                params:[1]
+        4. 如果有三个参数，且第一个参数为字符串，第二个参数为数字或字符串，第三个参数为null、数字或字符串，则会将第一个参数与第二个参数拼接为条件，第三个参数为预处理参数。
         
             例：
             DB::table("user")->where("id",">",1)->select();
