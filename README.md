@@ -1,7 +1,9 @@
 # HMorm
-弘梦orm，一款php orm
+弘梦orm，一款国人独立自主研发的微size php orm，性能比国外orm强60%。
 ### 简介
-HMorm是一款单例模式的php语言数据库操作orm，使用方式类似于Thinkphp中的orm操作。
+PDO单例模式
+链式操作
+使用方式类似于Thinkphp中的orm操作。
 ### 安装
 1. 安装
     ```php
