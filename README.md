@@ -584,6 +584,49 @@ PDO单例模式
     
     类似where方法，存在聚合搜索时使用。返回$this。 
 
+* 方法 order
+    
+    设置分类查询。返回$this。
+    ```php
+    order(string $order);
+    order(array $order);
+    order(callable $function);
+    ```
+    1. 第一个参数为字符串时，将用此字符串来分类。
+      
+              例：
+
+              DB::table("user")->field("id")->order("id")->select();
+
+              会转化为
+
+              select id from user order by id;
+
+  
+    2. 第一个参数为数组时，将用此数组的每一项来分类。
+      
+              例：
+
+              DB::table("user")->field("id,tid")->order(["id desc","tid"])->select();
+
+              会转化为
+
+              select id,tid from user order by id desc,tid;
+
+  
+    3. 第一个参数为函数时，会将当前实例作为函数的第一个参数执行此函数。
+    
+            例：
+
+            DB::table("user")->field("id,tid")
+            ->order(function($q){
+              $q->order(["id","tid"]);
+            })->select();
+
+            会转化为
+
+            select id,tid from user order by id,tid;
+
 * 方法 limit
     
     设置分类查询。返回$this。
